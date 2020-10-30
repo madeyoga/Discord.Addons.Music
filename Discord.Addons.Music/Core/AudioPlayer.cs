@@ -119,35 +119,32 @@ namespace Discord.Addons.Music.Core
                     }
 
                     // If finished playing or stopped: OnTrackEnd
-                    // audioEvent.OnTrackEnd(PlayingTrack);
                     audioEvent.OnTrackEnd(PlayingTrack);
 
                     isStopped = true;
+
                     await PlayingTrack.SourceStream.DisposeAsync();
+                    PlayingTrack.SourceStream.Close();
+                    PlayingTrack = null;
 
                     // Clear buffers & reads queue
                     buffers.Clear();
                     reads.Clear();
                 }
+
+                isStopped = false;
             });
         }
 
         private Stream LoadTrackStream(AudioTrack track)
         {
-            // Stream song
-            Process ytdlProcess = Process.Start(new ProcessStartInfo
-            {
-                FileName = "youtube-dl.exe",
-                Arguments = $"--format bestaudio -o Data/Music/{guildId}.mp3 {track.Url}",
-                RedirectStandardOutput = true
-            });
-            ytdlProcess.WaitForExit();
-
             Process ffmpegProcess = Process.Start(new ProcessStartInfo
             {
-                FileName = "ffmpeg.exe",
-                Arguments = $"-loglevel panic -i \"Data/Music/{guildId}.mp3\" -ac 2 -f s16le -ar 48000 pipe:1",
-                RedirectStandardOutput = true
+                FileName = "cmd.exe",
+                Arguments = $"/C youtube-dl.exe --format bestaudio -o - {track.Url} | ffmpeg.exe -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             });
 
             return ffmpegProcess.StandardOutput.BaseStream;

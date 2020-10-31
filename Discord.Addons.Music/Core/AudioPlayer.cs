@@ -76,7 +76,7 @@ namespace Discord.Addons.Music.Core
                 // Volatile queue does not work
                 while (true)
                 {
-                    byte[] buffer = new byte[16096];
+                    byte[] buffer = new byte[164384];
                     int read;
                     if ((read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                     {

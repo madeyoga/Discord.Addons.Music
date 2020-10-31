@@ -55,12 +55,6 @@ namespace Nano.Net.Modules
                 return;
             }
 
-            SocketVoiceChannel clientVoiceChannel = (((SocketUser) Context.Client.CurrentUser) as SocketGuildUser)?.VoiceChannel;
-            if (clientVoiceChannel is null)
-            {
-                await audioService.JoinChannel(voiceChannel, Context.Guild.Id);
-            }
-
             Console.WriteLine(query);
             await audioService.loadAndPlay(query);
         }

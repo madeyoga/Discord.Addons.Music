@@ -1,4 +1,4 @@
-# Unofficial Discord Addons for Music
+# Unofficial Discord.Net Addons for Music
 Unofficial Discord.Net extension for Music using FFmpeg
 
 ## Requirements

@@ -49,6 +49,7 @@ namespace Discord.Addons.Music.Core
             if (DiscordStream != null)
             {
                 DiscordStream.Flush();
+                DiscordStream.Dispose();
                 DiscordStream.Close();
             }
             DiscordStream = client.CreatePCMStream(AudioApplication.Music);
@@ -59,15 +60,23 @@ namespace Discord.Addons.Music.Core
             if (audioEvent == null)
                 audioEvent = new DefaultAudioEventAdapter();
 
-            // Load playing track source stream
-            PlayingTrack.SourceStream = LoadTrackStream(PlayingTrack);
+            // handle if still playing
+            //if (PlayingTrack != null)
+            //{
+            //    return;
+            //}
 
-            await Task.Run(async () =>
+            // Load playing track source stream
+            //PlayingTrack.SourceStream = LoadTrackStream(PlayingTrack);
+            PlayingTrack.SourceStream = PlayingTrack.FFmpegProcess.StandardOutput.BaseStream;
+            
+            await Task.Factory.StartNew(async () =>
             {
                 // Read & Split buffers from Audio Stream.
+                // Volatile queue does not work
                 while (true)
                 {
-                    byte[] buffer = new byte[4096];
+                    byte[] buffer = new byte[16096];
                     int read;
                     if ((read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                     {
@@ -79,11 +88,16 @@ namespace Discord.Addons.Music.Core
                         break;
                     }
                 }
-            });
 
-            await Task.Run(async () =>
-            {
+                // No buffers
+                if (buffers.Count <= 0)
+                {
+                    Console.WriteLine("Cannot play track: Empty stream.");
+                    return;
+                }
+
                 bool isFinishedPlaying = false;
+                isStopped = false;
 
                 // OnTrackStart Playing here
                 await audioEvent.OnTrackStartAsync(PlayingTrack);
@@ -103,7 +117,7 @@ namespace Discord.Addons.Music.Core
                         // Write every second.
                         if (reads.Count != 0)
                         {
-                            await Task.Delay(1);
+                            await Task.Delay(10);
                             continue;
                         }
 
@@ -114,7 +128,7 @@ namespace Discord.Addons.Music.Core
                     // Paused
                     if (reads.Count != 0)
                     {
-                        await Task.Delay(1);
+                        await Task.Delay(2000);
                         continue;
                     }
 
@@ -123,21 +137,19 @@ namespace Discord.Addons.Music.Core
 
                     isStopped = true;
 
-                    await PlayingTrack.SourceStream.DisposeAsync();
-                    PlayingTrack.SourceStream.Close();
-                    PlayingTrack = null;
-
                     // Clear buffers & reads queue
                     buffers.Clear();
                     reads.Clear();
                 }
 
-                isStopped = false;
+                await DisposeAsync();
             });
         }
 
         private Stream LoadTrackStream(AudioTrack track)
         {
+            // Stream song
+            // In 1 Process WORKED!!!!
             Process ffmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = "cmd.exe",
@@ -153,7 +165,13 @@ namespace Discord.Addons.Music.Core
         private async Task DisposeAsync()
         {
             await DiscordStream.FlushAsync();
-            await PlayingTrack.SourceStream.DisposeAsync();
+            await PlayingTrack.SourceStream.FlushAsync();
+
+            PlayingTrack.SourceStream.Dispose();
+            PlayingTrack.SourceStream.Close();
+            PlayingTrack.FFmpegProcess.Dispose();
+            PlayingTrack.FFmpegProcess.Close();
+            PlayingTrack = null;
         }
 
         public void Pause()
@@ -168,10 +186,7 @@ namespace Discord.Addons.Music.Core
 
         public void Stop()
         {
-            isPaused = true;
             isStopped = true;
-
-            DisposeAsync().GetAwaiter().GetResult();
         }
 
         public void SetVolume(double volume)
@@ -218,9 +233,9 @@ namespace Discord.Addons.Music.Core
 
         ~AudioPlayer()
         {
+            DiscordStream.Flush();
             DiscordStream.Dispose();
             DiscordStream.Close();
-            File.Delete($"Data/Music/{guildId}.mp3");
         }
     }
 }

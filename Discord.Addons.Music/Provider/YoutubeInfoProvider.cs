@@ -12,14 +12,11 @@ namespace Discord.Addons.Music.Provider
         {
             Process ytdlProcess = Process.Start(new ProcessStartInfo
             {
-                FileName = "youtube-dl.exe",
+                FileName = "youtube-dl",
                 Arguments = $" --dump-json " + videoUrl,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
+                RedirectStandardOutput = true
             });
-            ytdlProcess.WaitForExit();
-            
+
             return await ytdlProcess.StandardOutput.ReadToEndAsync();
         }
     }

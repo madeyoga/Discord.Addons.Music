@@ -1,5 +1,5 @@
-# Discord.Addons.Music
-Discord.Net extension for Music using ffmpeg
+# Unofficial Discord.Net Addons for Music
+Unofficial Discord.Net extension for Music using FFmpeg
 
 ## Requirements
 - [Libopus & Opus.dll](https://opus-codec.org/downloads/)

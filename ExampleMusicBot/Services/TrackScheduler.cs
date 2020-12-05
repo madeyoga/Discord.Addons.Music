@@ -11,7 +11,7 @@ namespace Nano.Net.Services
     {
         public void OnTrackEnd(AudioTrack track)
         {
-            Console.WriteLine("Track end");
+            Console.WriteLine("Track end " + track.TrackInfo.Title);
         }
 
         public void OnTrackError(AudioTrack track, TrackErrorException exception)
@@ -21,7 +21,7 @@ namespace Nano.Net.Services
 
         public void OnTrackStart(AudioTrack track)
         {
-            Console.WriteLine("Start playing track");
+            Console.WriteLine("Start playing track " + track.TrackInfo.Title);
         }
 
         public Task OnTrackStartAsync(AudioTrack track)

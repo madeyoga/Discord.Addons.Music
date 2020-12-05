@@ -85,14 +85,14 @@ namespace Nano.Net.Modules
         [Command("pause", RunMode = RunMode.Async)]
         public async Task PauseAsync()
         {
-            audioService.Player.Pause();
+            audioService.Player.SetPaused(true);
             await ReplyAsync("Pause!");
         }
 
         [Command("resume", RunMode = RunMode.Async)]
         public async Task ResumeAsync()
         {
-            audioService.Player.Resume();
+            audioService.Player.SetPaused(false);
             await ReplyAsync("Resume!");
         }
 

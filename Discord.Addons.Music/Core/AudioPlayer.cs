@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Discord.Addons.Music.Exception;
+using System.Threading;
 
 namespace Discord.Addons.Music.Core
 {
@@ -20,12 +22,11 @@ namespace Discord.Addons.Music.Core
         // Flags
         private volatile bool isPaused = false;
         private volatile bool isStopped = false;
+        private volatile bool isFinishedPlaying = false;
         private volatile bool isVolumeAdjusted = false;
 
         // Audio attributes
         private double Volume;
-        private volatile Queue<int> reads = new Queue<int>();
-        private volatile Queue<byte[]> buffers = new Queue<byte[]>();
 
         public AudioPlayer(ulong guildId)
         {
@@ -55,78 +56,57 @@ namespace Discord.Addons.Music.Core
             DiscordStream = client.CreatePCMStream(AudioApplication.Music);
         }
 
-        public async Task StartTrack()
+        public async Task StartTrack(AudioTrack track)
         {
             if (audioEvent == null)
                 audioEvent = new DefaultAudioEventAdapter();
 
-            // handle if still playing
-            //if (PlayingTrack != null)
-            //{
-            //    return;
-            //}
+            // handle if still playing, FAIL
+            if (PlayingTrack != null)
+            {
+                Stop();
+                await DisposeAsync();
+            }
+            PlayingTrack = track;
 
             // Load playing track source stream
-            //PlayingTrack.SourceStream = LoadTrackStream(PlayingTrack);
             PlayingTrack.SourceStream = PlayingTrack.FFmpegProcess.StandardOutput.BaseStream;
             
             await Task.Factory.StartNew(async () =>
             {
-                // Read & Split buffers from Audio Stream.
-                // Volatile queue does not work
-                while (true)
-                {
-                    byte[] buffer = new byte[164384];
-                    int read;
-                    if ((read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                    {
-                        reads.Enqueue(read);
-                        buffers.Enqueue(buffer);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                // No buffers
-                if (buffers.Count <= 0)
-                {
-                    Console.WriteLine("Cannot play track: Empty stream.");
-                    return;
-                }
-
-                bool isFinishedPlaying = false;
+                isFinishedPlaying = false;
                 isStopped = false;
+                isPaused = false;
 
                 // OnTrackStart Playing here
                 await audioEvent.OnTrackStartAsync(PlayingTrack);
 
+                byte[] buffer = new byte[164384];
+                int read;
                 // Playing loop
                 while (!isStopped)
                 {
                     // Event Loop
                     while (!isPaused && !isStopped && !isFinishedPlaying)
                     {
-                        // Write queued Buffers to DiscordStream.
-                        if (isVolumeAdjusted)
-                            await DiscordStream.WriteAsync(AdjustVolume(buffers.Dequeue(), Volume), 0, reads.Dequeue());
-                        else
-                            await DiscordStream.WriteAsync(buffers.Dequeue(), 0, reads.Dequeue());
-
-                        // Write every second.
-                        if (reads.Count != 0)
+                        read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length);
+                        if (read > 0)
                         {
-                            await Task.Delay(10);
-                            continue;
-                        }
+                            if (isVolumeAdjusted)
+                                await DiscordStream.WriteAsync(AdjustVolume(buffer, Volume), 0, read);
+                            else
+                                await DiscordStream.WriteAsync(buffer, 0, read);
 
-                        // If Queue is empty, then the song is finished playing
-                        isFinishedPlaying = true;
+                            await Task.Delay(10);
+                        }
+                        else
+                        {
+                            isFinishedPlaying = true;
+                        }
                     }
 
                     // Paused
-                    if (reads.Count != 0)
+                    if (isPaused && !isStopped && !isFinishedPlaying)
                     {
                         await Task.Delay(2000);
                         continue;
@@ -136,30 +116,54 @@ namespace Discord.Addons.Music.Core
                     audioEvent.OnTrackEnd(PlayingTrack);
 
                     isStopped = true;
-
-                    // Clear buffers & reads queue
-                    buffers.Clear();
-                    reads.Clear();
                 }
 
-                await DisposeAsync();
+                await DiscordStream.FlushAsync();
+                //await DisposeAsync();
             });
         }
 
-        private Stream LoadTrackStream(AudioTrack track)
+        private void StreamBufferThread()
         {
-            // Stream song
-            // In 1 Process WORKED!!!!
-            Process ffmpegProcess = Process.Start(new ProcessStartInfo
+            // Playing loop
+            while (!isStopped)
             {
-                FileName = "cmd.exe",
-                Arguments = $"/C youtube-dl.exe --format bestaudio -o - {track.Url} | ffmpeg.exe -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
+                // Event Loop
+                while (!isPaused && !isStopped && !isFinishedPlaying)
+                {
+                    byte[] buffer = new byte[164384];
+                    int read;
+                    read = PlayingTrack.SourceStream.Read(buffer, 0, buffer.Length);
+                    if (read > 0)
+                    {
+                        // Write queued Buffers to DiscordStream.
+                        if (isVolumeAdjusted)
+                            DiscordStream.Write(AdjustVolume(buffer, Volume), 0, read);
+                        else
+                            DiscordStream.Write(buffer, 0, read);
 
-            return ffmpegProcess.StandardOutput.BaseStream;
+                        Thread.Sleep(10);
+                    }
+                    else
+                    {
+                        isFinishedPlaying = true;
+                    }
+                }
+
+                // Paused
+                if (isPaused && !isStopped && !isFinishedPlaying)
+                {
+                    Thread.Sleep(2000);
+                    continue;
+                }
+
+                // If finished playing or stopped: OnTrackEnd
+                audioEvent.OnTrackEnd(PlayingTrack);
+
+                isStopped = true;
+            }
+
+            DiscordStream.Flush();
         }
 
         private async Task DisposeAsync()
@@ -171,17 +175,12 @@ namespace Discord.Addons.Music.Core
             PlayingTrack.SourceStream.Close();
             PlayingTrack.FFmpegProcess.Dispose();
             PlayingTrack.FFmpegProcess.Close();
-            PlayingTrack = null;
+            //PlayingTrack = null;
         }
 
-        public void Pause()
+        public void SetPaused(bool paused)
         {
-            isPaused = true;
-        }
-
-        public void Resume()
-        {
-            isPaused = false;
+            isPaused = paused;
         }
 
         public void Stop()
@@ -191,7 +190,14 @@ namespace Discord.Addons.Music.Core
 
         public void SetVolume(double volume)
         {
-            isVolumeAdjusted = true;
+            if (volume == 1.0)
+            {
+                isVolumeAdjusted = false;
+            }
+            else
+            {
+                isVolumeAdjusted = true;
+            }
             Volume = volume;
         }
 
@@ -236,6 +242,14 @@ namespace Discord.Addons.Music.Core
             DiscordStream.Flush();
             DiscordStream.Dispose();
             DiscordStream.Close();
+
+            if (PlayingTrack != null)
+            {
+                PlayingTrack.SourceStream.Dispose();
+                PlayingTrack.SourceStream.Close();
+                PlayingTrack.FFmpegProcess.Dispose();
+                PlayingTrack.FFmpegProcess.Close();
+            }
         }
     }
 }

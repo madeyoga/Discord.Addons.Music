@@ -54,13 +54,32 @@ namespace Nano.Net.Services
             }
         }
 
-        public async Task loadAndPlay(string url)
+        public async Task loadAndPlay(string query)
         {
-            AudioTrack track = await TrackLoader.LoadYoutubeTrack(url);
-            Player.PlayingTrack = track;
+            List<AudioTrack> tracks;
 
-            Console.WriteLine("Load and play " + track.TrackInfo.Title);
-            await Player.StartTrack();
+            // If query is Url
+            if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
+            {
+                Console.WriteLine(query + " is url");
+                // await TrackLoader.LoadAudioTrack(query, new DefaultAudioResultHandler());
+                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: true);
+            }
+            else
+            {
+                Console.WriteLine(query + " is not url");
+                // await TrackLoader.LoadAudioTrack(query, new DefaultAudioResultHandler(), fromUrl: false);
+                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: false);
+            }
+            
+            Console.WriteLine("Loaded " + tracks.Count + " entri(es)");
+            
+            foreach(AudioTrack track in tracks)
+            {
+                Console.WriteLine(track.TrackInfo.Title);
+            }
+            
+            await Player.StartTrack(tracks[0]);
         }
     }
 }

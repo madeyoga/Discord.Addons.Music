@@ -47,7 +47,7 @@ namespace Nano.Net
 
                 // Tokens should be considered secret data and never hard-coded.
                 // We can read from the environment variable to avoid hardcoding.
-                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("SAN_TOKEN"));
+                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("NR_TOKEN"));
                 await client.StartAsync();
 
                 // Here we initialize the logic required to register our commands.

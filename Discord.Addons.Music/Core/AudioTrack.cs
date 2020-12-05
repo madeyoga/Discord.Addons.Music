@@ -31,8 +31,11 @@ namespace Discord.Addons.Music.Core
 
         ~AudioTrack()
         {
-            SourceStream.Dispose();
-            SourceStream.Close();
+            if (SourceStream != null)
+            {
+                SourceStream.Dispose();
+                SourceStream.Close();
+            }
         }
     }
 }

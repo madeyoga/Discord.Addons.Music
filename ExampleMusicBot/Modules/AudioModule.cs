@@ -8,6 +8,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Discord.Addons.Music.Core;
+using ExampleMusicBot.Services.Music;
 
 namespace Nano.Net.Modules
 {
@@ -56,7 +57,7 @@ namespace Nano.Net.Modules
             }
 
             Console.WriteLine(query);
-            await audioService.loadAndPlay(query);
+            await audioService.loadAndPlay(query, Context.Guild);
         }
 
         [Command("join", RunMode = RunMode.Async)]
@@ -71,42 +72,47 @@ namespace Nano.Net.Modules
                 return;
             }
 
-            await audioService.JoinChannel(voiceChannel, Context.Guild.Id);
+            await audioService.JoinChannel(voiceChannel, Context.Guild);
         }
 
         [Command("stop", RunMode = RunMode.Async)]
         [Alias("leave")]
         public async Task StopAsync()
         {
-            audioService.Player.Stop();
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            voiceState.Player.Stop();
             await audioService.LeaveChannel(Context);
         }
 
         [Command("pause", RunMode = RunMode.Async)]
         public async Task PauseAsync()
         {
-            audioService.Player.SetPaused(true);
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            voiceState.Player.SetPaused(true);
             await ReplyAsync("Pause!");
         }
 
         [Command("resume", RunMode = RunMode.Async)]
         public async Task ResumeAsync()
         {
-            audioService.Player.SetPaused(false);
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            voiceState.Player.SetPaused(false);
             await ReplyAsync("Resume!");
         }
 
         [Command("volume", RunMode = RunMode.Async)]
         public async Task VolumeAsync([Remainder] string volumeNumber)
         {
-            audioService.Player.SetVolume(double.Parse(volumeNumber) / 100);
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            voiceState.Player.SetVolume(double.Parse(volumeNumber) / 100);
             await ReplyAsync("Volume changed to " + volumeNumber + "!");
         }
 
         [Command("np", RunMode = RunMode.Async)]
         public async Task AnnounceNowplayAsync()
         {
-            await ReplyAsync("Nowplaying " + audioService.Player.PlayingTrack.TrackInfo.Title);
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.TrackInfo.Title);
         }
     }
 }

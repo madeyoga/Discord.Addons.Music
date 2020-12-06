@@ -16,7 +16,10 @@ namespace Discord.Addons.Music.Common
     {
         public static async Task<List<AudioTrack>> LoadAudioTrack(string query, bool fromUrl = true)
         {
-            //query = HttpUtility.UrlEncode(query);
+            if (!fromUrl)
+            {
+                query = HttpUtility.UrlEncode(query);
+            }
 
             JObject ytdlResponseJson = await YoutubeDLInfoProvider.ExtractInfo(query, fromUrl);
 
@@ -30,10 +33,9 @@ namespace Discord.Addons.Music.Common
                     foreach (JObject ytdlVideoJson in ytdlResponseJson["entries"].Value<JArray>())
                     {
                         SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlVideoJson);
-                        songs.Add(new AudioTrack()
+                        songs.Add(new AudioTrack(LoadFFmpegProcess(songInfo.Url))
                         {
                             Url = songInfo.Url,
-                            FFmpegProcess = LoadFFmpegProcess(songInfo.Url),
                             TrackInfo = songInfo
                         });
                     }
@@ -42,10 +44,9 @@ namespace Discord.Addons.Music.Common
                 {
                     JObject ytdlVideoJson = ytdlResponseJson["entries"].Value<JArray>()[0].Value<JObject>();
                     SongInfo firstEntrySong = SongInfo.ParseYtdlResponse(ytdlVideoJson);
-                    songs.Add(new AudioTrack()
+                    songs.Add(new AudioTrack(LoadFFmpegProcess(firstEntrySong.Url))
                     {
                         Url = firstEntrySong.Url,
-                        FFmpegProcess = LoadFFmpegProcess(firstEntrySong.Url),
                         TrackInfo = firstEntrySong
                     });
                 }
@@ -53,10 +54,9 @@ namespace Discord.Addons.Music.Common
             else
             {
                 SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlResponseJson);
-                songs.Add(new AudioTrack()
+                songs.Add(new AudioTrack(LoadFFmpegProcess(songInfo.Url))
                 {
                     Url = songInfo.Url,
-                    FFmpegProcess = LoadFFmpegProcess(songInfo.Url),
                     TrackInfo = songInfo
                 });
             }
@@ -77,10 +77,9 @@ namespace Discord.Addons.Music.Common
                     foreach (JObject ytdlVideoJson in ytdlResponseJson["entries"].Value<JArray>())
                     {
                         SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlVideoJson);
-                        songs.Add(new AudioTrack()
+                        songs.Add(new AudioTrack(LoadFFmpegProcess(songInfo.Url))
                         {
                             Url = songInfo.Url,
-                            FFmpegProcess = LoadFFmpegProcess(songInfo.Url),
                             TrackInfo = songInfo
                         });
                     }
@@ -90,10 +89,9 @@ namespace Discord.Addons.Music.Common
                 {
                     JObject ytdlVideoJson = ytdlResponseJson["entries"].Value<JArray>()[0].Value<JObject>();
                     SongInfo firstEntrySong = SongInfo.ParseYtdlResponse(ytdlVideoJson);
-                    handler.OnLoadTrack(new AudioTrack()
+                    handler.OnLoadTrack(new AudioTrack(LoadFFmpegProcess(firstEntrySong.Url))
                     {
                         Url = firstEntrySong.Url,
-                        FFmpegProcess = LoadFFmpegProcess(firstEntrySong.Url),
                         TrackInfo = firstEntrySong
                     });
                 }
@@ -101,10 +99,9 @@ namespace Discord.Addons.Music.Common
             else
             {
                 SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlResponseJson);
-                handler.OnLoadTrack(new AudioTrack()
+                handler.OnLoadTrack(new AudioTrack(LoadFFmpegProcess(songInfo.Url))
                 {
                     Url = songInfo.Url,
-                    FFmpegProcess = LoadFFmpegProcess(songInfo.Url),
                     TrackInfo = songInfo
                 });
             }

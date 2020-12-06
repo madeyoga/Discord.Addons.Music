@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Discord.Addons.Music.Core
 {
-    public interface AudioEventAdapter
+    public interface IAudioEventAdapter
     {
         public void OnTrackStart(AudioTrack track);
 
@@ -16,6 +16,8 @@ namespace Discord.Addons.Music.Core
 
         public void OnTrackStuck(AudioTrack track, TrackStuckException exception);
 
-        public Task OnTrackStartAsync(AudioTrack track);
+        public Task<Task> OnTrackStartAsync(AudioTrack track);
+
+        public Task<Task> OnTrackEndAsync(AudioTrack track);
     }
 }

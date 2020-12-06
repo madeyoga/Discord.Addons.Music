@@ -14,39 +14,34 @@ namespace Discord.Addons.Music.Core
     {
         public AudioTrack PlayingTrack { get; set; }
         public AudioOutStream DiscordStream { get; set; }
+        public IAudioClient AudioClient { get; set; }
 
         private ulong guildId { get; set; }
-        private AudioEventAdapter audioEvent;
-        private IAudioClient audioClient;
+        private IAudioEventAdapter audioEvent;
+        private Thread audioStreamThread;
 
         // Flags
         private volatile bool isPaused = false;
-        private volatile bool isStopped = false;
-        private volatile bool isFinishedPlaying = false;
+        private volatile bool isStopped = true;
+        private volatile bool isFinishedPlaying = true;
         private volatile bool isVolumeAdjusted = false;
 
         // Audio attributes
         private double Volume;
 
-        public AudioPlayer(ulong guildId)
+        public AudioPlayer()
         {
-            this.guildId = guildId;
+
         }
 
-        public AudioPlayer(ulong guildId, AudioEventAdapter audioEvent)
-        {
-            this.audioEvent = audioEvent;
-            this.guildId = guildId;
-        }
-
-        public void RegisterEventAdapter(AudioEventAdapter audioEvent)
+        public void RegisterEventAdapter(IAudioEventAdapter audioEvent)
         {
             this.audioEvent = audioEvent;
         }
 
         public void SetAudioClient(IAudioClient client)
         {
-            audioClient = client;
+            AudioClient = client;
             if (DiscordStream != null)
             {
                 DiscordStream.Flush();
@@ -56,22 +51,22 @@ namespace Discord.Addons.Music.Core
             DiscordStream = client.CreatePCMStream(AudioApplication.Music);
         }
 
-        public async Task StartTrack(AudioTrack track)
+        public async Task PlayTrackAsync(AudioTrack track)
         {
             if (audioEvent == null)
                 audioEvent = new DefaultAudioEventAdapter();
 
             // handle if still playing, FAIL
-            if (PlayingTrack != null)
+            if (IsPlaying())
             {
                 Stop();
-                await DisposeAsync();
+                Dispose();
             }
             PlayingTrack = track;
 
             // Load playing track source stream
             PlayingTrack.SourceStream = PlayingTrack.FFmpegProcess.StandardOutput.BaseStream;
-            
+
             await Task.Factory.StartNew(async () =>
             {
                 isFinishedPlaying = false;
@@ -102,6 +97,7 @@ namespace Discord.Addons.Music.Core
                         else
                         {
                             isFinishedPlaying = true;
+                            isStopped = true;
                         }
                     }
 
@@ -111,20 +107,40 @@ namespace Discord.Addons.Music.Core
                         await Task.Delay(2000);
                         continue;
                     }
-
-                    // If finished playing or stopped: OnTrackEnd
-                    audioEvent.OnTrackEnd(PlayingTrack);
-
-                    isStopped = true;
                 }
 
                 await DiscordStream.FlushAsync();
-                //await DisposeAsync();
+                // If finished playing or stopped: OnTrackEnd
+                audioEvent.OnTrackEnd(PlayingTrack);
+                //Dispose();
             });
         }
 
-        private void StreamBufferThread()
+        public void PlayTrack(AudioTrack track)
         {
+            if (audioEvent == null)
+                audioEvent = new DefaultAudioEventAdapter();
+
+            // handle if still playing, FAIL
+            if (IsPlaying())
+            {
+                Stop();
+                Dispose();
+            }
+            PlayingTrack = track;
+
+            audioStreamThread = new Thread(StartAudioStream);
+            audioStreamThread.Start();
+        }
+
+        private void StartAudioStream()
+        {
+            isFinishedPlaying = false;
+            isStopped = false;
+            isPaused = false;
+
+            audioEvent.OnTrackStart(PlayingTrack);
+
             // Playing loop
             while (!isStopped)
             {
@@ -142,39 +158,41 @@ namespace Discord.Addons.Music.Core
                         else
                             DiscordStream.Write(buffer, 0, read);
 
-                        Thread.Sleep(10);
+                        //Thread.Sleep(10);
                     }
                     else
                     {
                         isFinishedPlaying = true;
+                        isStopped = true;
                     }
                 }
 
                 // Paused
                 if (isPaused && !isStopped && !isFinishedPlaying)
                 {
-                    Thread.Sleep(2000);
+                    Task.Delay(2000);
                     continue;
                 }
-
-                // If finished playing or stopped: OnTrackEnd
-                audioEvent.OnTrackEnd(PlayingTrack);
-
-                isStopped = true;
             }
 
+            // If finished playing or stopped: OnTrackEnd
             DiscordStream.Flush();
+
+            audioEvent.OnTrackEnd(PlayingTrack);
         }
 
-        private async Task DisposeAsync()
+        private void Dispose()
         {
-            await DiscordStream.FlushAsync();
-            await PlayingTrack.SourceStream.FlushAsync();
+            DiscordStream.Flush();
+            if (PlayingTrack != null)
+            {
+                PlayingTrack.SourceStream.Flush();
 
-            PlayingTrack.SourceStream.Dispose();
-            PlayingTrack.SourceStream.Close();
-            PlayingTrack.FFmpegProcess.Dispose();
-            PlayingTrack.FFmpegProcess.Close();
+                PlayingTrack.SourceStream.Dispose();
+                PlayingTrack.SourceStream.Close();
+                PlayingTrack.FFmpegProcess.Dispose();
+                PlayingTrack.FFmpegProcess.Close();
+            }
             //PlayingTrack = null;
         }
 
@@ -214,6 +232,11 @@ namespace Discord.Addons.Music.Core
         public long GetPosition()
         {
             return PlayingTrack.SourceStream.Position;
+        }
+
+        public bool IsPlaying()
+        {
+            return !isStopped && !isFinishedPlaying;
         }
 
         private static unsafe byte[] AdjustVolume(byte[] audioSamples, double volume)

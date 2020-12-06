@@ -24,13 +24,33 @@ namespace Discord.Addons.Music.Core
 
         }
 
-        public AudioTrack(Stream sourceStream)
+        public AudioTrack(Process ffmpegProcess)
         {
-            SourceStream = sourceStream;
+            FFmpegProcess = ffmpegProcess;
+            SourceStream = ffmpegProcess.StandardOutput.BaseStream;
+        }
+
+        public AudioTrack MakeClone()
+        {
+            Stream streamClone = new MemoryStream();
+            SourceStream.CopyTo(streamClone);
+
+            return new AudioTrack()
+            {
+                Url = Url,
+                SourceStream = streamClone,
+                FFmpegProcess = null,
+                TrackInfo =TrackInfo
+            };
         }
 
         ~AudioTrack()
         {
+            if (FFmpegProcess != null)
+            {
+                FFmpegProcess.Dispose();
+                FFmpegProcess.Close();
+            }
             if (SourceStream != null)
             {
                 SourceStream.Dispose();

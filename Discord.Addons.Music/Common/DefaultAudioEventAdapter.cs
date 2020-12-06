@@ -7,27 +7,36 @@ using System.Threading.Tasks;
 
 namespace Discord.Addons.Music.Common
 {
-    public class DefaultAudioEventAdapter : AudioEventAdapter
+    public class DefaultAudioEventAdapter : IAudioEventAdapter
     {
         public void OnTrackEnd(AudioTrack track)
         {
+            throw new NotImplementedException();
         }
 
         public void OnTrackError(AudioTrack track, TrackErrorException exception)
         {
+            throw new NotImplementedException();
         }
 
         public void OnTrackStart(AudioTrack track)
-        {
-        }
-
-        public Task OnTrackStartAsync(AudioTrack track)
         {
             throw new NotImplementedException();
         }
 
         public void OnTrackStuck(AudioTrack track, TrackStuckException exception)
         {
+            throw new NotImplementedException();
+        }
+
+        public Task<Task> OnTrackEndAsync(AudioTrack track)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Task> OnTrackStartAsync(AudioTrack track)
+        {
+            throw new NotImplementedException();
         }
     }
 }

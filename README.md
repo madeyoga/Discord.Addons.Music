@@ -1,4 +1,8 @@
 # Unofficial Discord.Net Addons for Music
+![Nuget](https://img.shields.io/nuget/v/Discord.Addons.Music?color=Green&style=for-the-badge)
+![Nuget](https://img.shields.io/nuget/dt/Discord.Addons.Music?color=GREEN&style=for-the-badge)
+[![contributionswelcome](https://img.shields.io/badge/contributions-welcome-brightgreen/?style=for-the-badge)]((https://github.com/madeyoga/Discord.Addons.Music/issues))
+
 Unofficial Discord.Net extension for Music using FFmpeg
 
 ## Requirements
@@ -55,3 +59,8 @@ public async Task loadAndPlay(string query)
 
 ### More Examples
 - Examples for guild management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.

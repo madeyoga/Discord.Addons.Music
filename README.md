@@ -4,7 +4,7 @@
 [![contributionswelcome](https://img.shields.io/badge/contributions-welcome-brightgreen/?style=for-the-badge)]((https://github.com/madeyoga/Discord.Addons.Music/issues))
 [![discord_invite](https://img.shields.io/discord/458296099049046018?style=for-the-badge)](https://discord.gg/Y8sB4ay)
 
-Audio player for Discord.Net
+Audio player library for Discord.Net
 
 ## Requirements
 - [Libopus & Opus.dll](https://opus-codec.org/downloads/)

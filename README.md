@@ -26,7 +26,7 @@ using Discord.Addons.Music.Core;
 Player = new AudioPlayer();
 ```
 
-### Set Guild's IAudioClient
+### Set AudioPlayer's IAudioClient
 ```C#
 Player.SetAudioClient(audioClient)
 ```

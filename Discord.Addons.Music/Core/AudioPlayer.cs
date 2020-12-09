@@ -84,6 +84,16 @@ namespace Discord.Addons.Music.Core
                     // Event Loop
                     while (!isPaused && !isStopped && !isFinishedPlaying)
                     {
+                        if (DiscordStream == null)
+                        {
+                            audioEvent.OnTrackError(PlayingTrack, new TrackErrorException("Error when playing audio track: Stream gone."));
+                            isFinishedPlaying = true;
+                            isStopped = true;
+                            Dispose();
+                            PlayingTrack = null;
+                            return;
+                        }
+
                         read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length);
                         if (read > 0)
                         {
@@ -108,9 +118,7 @@ namespace Discord.Addons.Music.Core
                         continue;
                     }
                 }
-
                 await DiscordStream.FlushAsync();
-                // If finished playing or stopped: OnTrackEnd
                 audioEvent.OnTrackEnd(PlayingTrack);
                 //Dispose();
             });
@@ -141,14 +149,25 @@ namespace Discord.Addons.Music.Core
 
             audioEvent.OnTrackStart(PlayingTrack);
 
+            byte[] buffer = new byte[164384];
+            int read;
+
             // Playing loop
             while (!isStopped)
             {
                 // Event Loop
                 while (!isPaused && !isStopped && !isFinishedPlaying)
                 {
-                    byte[] buffer = new byte[164384];
-                    int read;
+                    if (DiscordStream == null)
+                    {
+                        audioEvent.OnTrackError(PlayingTrack, new TrackErrorException("Error when playing audio track: Stream gone."));
+                        isFinishedPlaying = true;
+                        isStopped = true;
+                        Dispose();
+                        PlayingTrack = null;
+                        return;
+                    }
+
                     read = PlayingTrack.SourceStream.Read(buffer, 0, buffer.Length);
                     if (read > 0)
                     {

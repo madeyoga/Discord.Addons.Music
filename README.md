@@ -6,6 +6,8 @@
 
 Audio player library for Discord.Net
 
+**This project is still in development and not yet ready for production use**
+
 ## Requirements
 - [Libopus & Opus.dll](https://opus-codec.org/downloads/)
 - [Youtube-dl](https://youtube-dl.org/)

@@ -1,22 +1,28 @@
 ﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeSearchApi.Net;
+using YoutubeSearchApi.Net.Backends;
+using YoutubeSearchApi.Net.Objects;
 
 namespace Nano.Net.Services
 {
     public class YoutubeService
     {
-        private YoutubeApiV3Client ytsClient;
+        private DefaultSearchClient client;
 
         public YoutubeService()
         {
-            ytsClient = new YoutubeApiV3Client(Environment.GetEnvironmentVariable("DEVELOPER_KEY"));
+            client = new DefaultSearchClient(new YoutubeSearchBackend());
         }
 
-        public async Task <dynamic> SearchVideosByQuery(string query)
+        public async Task <DefaultResponse> SearchVideosByQuery(string query)
         {
-            dynamic response = await ytsClient.Search(query);
-            return response;
+            using (HttpClient httpClient = new HttpClient())
+            {
+                DefaultResponse response = await client.SearchAsync(httpClient, query, 5);
+                return response;
+            }
         }
     }
 }

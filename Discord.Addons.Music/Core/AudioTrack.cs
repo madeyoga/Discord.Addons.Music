@@ -1,33 +1,28 @@
-﻿using Discord.Addons.Music.Objects;
-using Discord.Audio;
+﻿using Discord.Addons.Music.Object;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Discord.Addons.Music.Core
 {
-    public class AudioTrack
+    public class AudioTrack : IAudioTrack
     {
         public Stream SourceStream { get; set; }
-
         public Process FFmpegProcess { get; set; }
-
-        public SongInfo TrackInfo { get; set; }
-
         public string Url { get; set; }
+        public IAudioInfo Info { get; set; }
 
-        public AudioTrack()
+        public void LoadProcess()
         {
-
-        }
-
-        public AudioTrack(Process ffmpegProcess)
-        {
-            FFmpegProcess = ffmpegProcess;
-            SourceStream = ffmpegProcess.StandardOutput.BaseStream;
+            FFmpegProcess = Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/C youtube-dl.exe --format --audio-quality 0 bestaudio -o - {Url} | ffmpeg.exe -re -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -vn -nostats -loglevel 0 panic -i pipe:0 -c:a libopus -b:a bitrate 96K -ac 2 -f s16le -ar 48000 pipe:1",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            SourceStream = FFmpegProcess.StandardOutput.BaseStream;
         }
 
         public AudioTrack MakeClone()
@@ -40,8 +35,14 @@ namespace Discord.Addons.Music.Core
                 Url = Url,
                 SourceStream = streamClone,
                 FFmpegProcess = null,
-                TrackInfo =TrackInfo
+                Info = Info
             };
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)SourceStream).Dispose();
+            FFmpegProcess.Dispose();
         }
 
         ~AudioTrack()

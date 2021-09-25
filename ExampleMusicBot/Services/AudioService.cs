@@ -1,33 +1,25 @@
 ﻿using Discord;
-using Discord.Audio;
-using Discord.Commands;
-using Discord.WebSocket;
-using Discord.Addons.Music.Core;
 using Discord.Addons.Music.Common;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Nano.Net.Services.Music;
+using Discord.Addons.Music.Core;
+using Discord.Commands;
 using ExampleMusicBot.Services.Music;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Nano.Net.Services
 {
     public class AudioService
     {
-        public GuildMusicManager MusicManager { get; set; }
+        public GuildVoiceStateManager MusicManager { get; set; }
 
         public AudioService()
         {
-            MusicManager = new GuildMusicManager();
+            MusicManager = new GuildVoiceStateManager();
         }
 
         public async Task JoinChannel(IVoiceChannel channel, IGuild guild)
         {
-
             var audioClient = await channel.ConnectAsync();
 
             GuildVoiceState voiceState = MusicManager.GetGuildVoiceState(guild);
@@ -81,9 +73,8 @@ namespace Nano.Net.Services
 
             foreach(AudioTrack track in tracks)
             {
-                //await voiceState.Scheduler.EnqueueAsync(track);
-                voiceState.Scheduler.Enqueue(track);
-                Console.WriteLine("Enqueued " + track.TrackInfo.Title);
+                await voiceState.Scheduler.EnqueueAsync(track);
+                Console.WriteLine("Enqueued " + track.Info.Title);
             }
         }
     }

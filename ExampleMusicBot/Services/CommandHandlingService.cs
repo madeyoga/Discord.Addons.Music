@@ -36,7 +36,7 @@ namespace Nano.Net.Services
         {
             // Ignore system messages, or messages from other bots
             if (!(rawMessage is SocketUserMessage message)) return;
-            if (message.Source != MessageSource.User) return;
+            if (message.Source == MessageSource.Bot) return;
 
             // This value holds the offset where the prefix ends
             var argPos = 0;

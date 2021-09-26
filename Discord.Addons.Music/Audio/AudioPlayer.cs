@@ -3,6 +3,7 @@ using Discord.Addons.Music.Exception;
 using Discord.Addons.Music.Object;
 using Discord.Audio;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,76 +24,93 @@ namespace Discord.Addons.Music.Audio
         // Abstract audio track later
         public AudioTrack PlayingTrack { get; set; }
         public Stream DiscordStream { get; set; }
-        public IAudioClient AudioClient { get; set; }
-        private float Volume { get; set; }
+        public IAudioClient AudioClient { get; private set; }
+        private double Volume { get; set; }
         private CancellationTokenSource cts;
+
+        public AudioPlayer()
+        {
+            OnTrackStartAsync += TrackStartEventAsync;
+            OnTrackEndAsync += TrackEndEventAsync;
+            OnTrackErrorAsync += TrackErrorEventAsync;
+            Volume = 1;
+        }
 
         public AudioPlayer(IAudioClient audioClient)
         {
             AudioClient = audioClient;
-
+            DiscordStream = audioClient.CreatePCMStream(AudioApplication.Music);
             OnTrackStartAsync += TrackStartEventAsync;
             OnTrackEndAsync += TrackEndEventAsync;
             OnTrackErrorAsync += TrackErrorEventAsync;
+            Volume = 1;
+        }
+
+        public void SetAudioClient(IAudioClient audioClient)
+        {
+            AudioClient = audioClient;
+            if (DiscordStream != null) DiscordStream.Dispose();
+            DiscordStream = audioClient.CreatePCMStream(AudioApplication.Music);
         }
 
         private Task TrackStartEventAsync(IAudioClient audioClient, AudioTrack track)
         {
             Paused = false;
+            ResetStreams();
             PlayingTrack = track;
             PlayingTrack.LoadProcess();
             return Task.CompletedTask;
         }
 
-        private async Task TrackEndEventAsync(IAudioClient audioClient, AudioTrack track)
-        {
-            await ResetStreams();
-            PlayingTrack = null;
-            cts.Dispose();
-        }
-
-        private async Task TrackErrorEventAsync(IAudioClient audioClient, AudioTrack track, TrackErrorException exception)
+        private Task TrackEndEventAsync(IAudioClient audioClient, AudioTrack track)
         {
             Paused = false;
-            await ResetStreams();
-            PlayingTrack = null;
+            ResetStreams();
             cts.Dispose();
+            PlayingTrack = null;
+            return Task.CompletedTask;
         }
 
-        protected async Task AudioLoopAsync(AudioTrack track, CancellationToken cts)
+        private Task TrackErrorEventAsync(IAudioClient audioClient, AudioTrack track, TrackErrorException exception)
+        {
+            Paused = false;
+            ResetStreams();
+            cts.Dispose();
+            PlayingTrack = null;
+            return Task.CompletedTask;
+        }
+
+        protected async Task AudioLoopAsync(AudioTrack track, CancellationToken ct)
         {
             byte[] buffer = new byte[1024];
             int read = -1;
-
             while (true)
             {
-                if (cts.IsCancellationRequested)
+                if (ct.IsCancellationRequested)
                 {
                     break;
                 }
 
                 if (DiscordStream == null)
                 {
-                    await OnTrackErrorAsync(AudioClient, track, new TrackErrorException("Error when playing audio track: NULL Discord Stream."));
+                    await OnTrackErrorAsync(AudioClient, track, new TrackErrorException("Error when playing audio track: Discord stream gone."));
                     return;
                 }
 
                 if (!Paused)
                 {
                     // Read audio byte sample
-                    read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length);
+                    read = await PlayingTrack.SourceStream.ReadAsync(buffer, 0, buffer.Length, ct);
                     if (read > 0)
                     {
                         if (Volume != 1)
                         {
-                            await DiscordStream.WriteAsync(AdjustVolume(buffer, Volume), 0, read);
+                            await DiscordStream.WriteAsync(AdjustVolume(buffer, Volume), 0, read, ct);
                         }
                         else
                         {
-                            await DiscordStream.WriteAsync(buffer, 0, read);
+                            await DiscordStream.WriteAsync(buffer, 0, read, ct);
                         }
-
-                        await Task.Delay(20);
                     }
                     // Finished playing
                     else
@@ -102,46 +120,43 @@ namespace Discord.Addons.Music.Audio
                 }
                 else
                 {
-                    await Task.Delay(2000);
+                    await Task.Delay(2000, ct);
                 }
             }
         }
 
-        public async Task<bool> StartTrackAsync(AudioTrack track, bool interrupt = true)
+        public bool StartTrackAsync(AudioTrack track, bool interrupt = true)
         {
-            if (interrupt)
+            if (!interrupt && PlayingTrack != null)
             {
-                await ResetStreams();
-            }
-            else
-            {
-                if (PlayingTrack != null) return false;
+                return false;
             }
 
-            cts = new CancellationTokenSource();
-            await Task.Run(async () => 
+            _ = Task.Run(async () =>
             {
+                cts = new CancellationTokenSource();
                 await OnTrackStartAsync(AudioClient, track);
                 await AudioLoopAsync(track, cts.Token);
                 await OnTrackEndAsync(AudioClient, track);
             });
-
-            //await Task.Factory.StartNew(async (action) =>
-            //{
-            //    await OnTrackStartAsync(AudioClient, track);
-            //    await AudioLoopAsync(track);
-            //    await OnTrackEndAsync(AudioClient, track);
-            //}, CancellationToken.None, TaskCreationOptions.LongRunning);
 
             return true;
         }
 
         public void Stop()
         {
-            cts.Cancel(false);
+            try
+            {
+                cts.Cancel(false);
+            }
+            catch(ObjectDisposedException)
+            {
+
+            }
+            cts.Dispose();
         }
 
-        public void SetVolume(float volume)
+        public void SetVolume(double volume)
         {
             if (volume > 100) volume = 100;
             else if (volume < 0) volume = 0;
@@ -152,6 +167,11 @@ namespace Discord.Addons.Music.Audio
             }
 
             Volume = volume;
+        }
+
+        public void SetPaused(bool paused)
+        {
+            Paused = paused;
         }
 
         protected static unsafe byte[] AdjustVolume(byte[] audioSamples, double volume)
@@ -175,24 +195,26 @@ namespace Discord.Addons.Music.Audio
             return audioSamples;
         }
 
-        protected async Task ResetStreams()
+        protected void ResetStreams()
         {
-            await DiscordStream.FlushAsync();
+            if (DiscordStream != null)
+                DiscordStream.Flush();
             if (PlayingTrack != null)
             {
-                PlayingTrack.SourceStream.Close();
-                PlayingTrack.FFmpegProcess.Close();
+                PlayingTrack.SourceStream.Dispose();
+                PlayingTrack.FFmpegProcess.Kill();
             }
         }
 
         ~AudioPlayer()
         {
-            DiscordStream.Close();   
             if (PlayingTrack != null)
             {
-                PlayingTrack.SourceStream.Close();
-                PlayingTrack.FFmpegProcess.Close();
+                PlayingTrack.SourceStream.Dispose();
+                PlayingTrack.FFmpegProcess.Kill();
             }
+            if (DiscordStream != null)
+                DiscordStream.Dispose();
         }
     }
 }

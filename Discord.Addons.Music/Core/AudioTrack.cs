@@ -14,10 +14,12 @@ namespace Discord.Addons.Music.Core
 
         public void LoadProcess()
         {
+            string command = $"/C youtube-dl.exe --format bestaudio --audio-quality 0 -o - {Url} | " +
+                "ffmpeg.exe -loglevel warning -re -vn -i pipe:0 -f s16le -b:a 128k -ar 48000 -ac 2 pipe:1";
             FFmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/C youtube-dl.exe --format --audio-quality 0 bestaudio -o - {Url} | ffmpeg.exe -re -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -vn -nostats -loglevel 0 panic -i pipe:0 -c:a libopus -b:a bitrate 96K -ac 2 -f s16le -ar 48000 pipe:1",
+                Arguments = command,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true

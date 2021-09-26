@@ -32,6 +32,7 @@ namespace Nano.Net.Services
             {
                 try
                 {
+                    voiceState.Player.Stop();
                     await voiceState.Player.AudioClient.StopAsync();
                     MusicManager.VoiceStates.TryRemove(Context.Guild.Id, out voiceState);
                 }
@@ -46,25 +47,17 @@ namespace Nano.Net.Services
             }
         }
 
-        public async Task loadAndPlay(string query, IGuild guild)
+        public async Task<AudioTrack> loadAndPlay(string query, IGuild guild)
         {
             List<AudioTrack> tracks;
 
             // If query is Url
-            if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
-            {
-                Console.WriteLine(query + " is url");
-                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: true);
-            }
-            else
-            {
-                Console.WriteLine(query + " is not url");
-                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: false);
-            }
+            bool wellFormedUri = Uri.IsWellFormedUriString(query, UriKind.Absolute);
+            tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellFormedUri);
             
             if (tracks.Count == 0)
             {
-                return;
+                return null;
             }
 
             Console.WriteLine("Loaded " + tracks.Count + " entri(es)");
@@ -73,9 +66,13 @@ namespace Nano.Net.Services
 
             foreach(AudioTrack track in tracks)
             {
+                Console.WriteLine("Enqueue " + track.Info.Title);
                 await voiceState.Scheduler.EnqueueAsync(track);
-                Console.WriteLine("Enqueued " + track.Info.Title);
+
+                return track;
             }
+
+            return null;
         }
     }
 }

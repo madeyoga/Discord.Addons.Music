@@ -55,9 +55,15 @@ namespace Nano.Net.Modules
                 await ReplyAsync("You r not in a voice channel");
                 return;
             }
-
-            Console.WriteLine(query);
-            await audioService.loadAndPlay(query, Context.Guild);
+            AudioTrack loadedTrack = await audioService.loadAndPlay(query, Context.Guild);
+            if (loadedTrack != null)
+            {
+                await ReplyAsync($":musical_note: Added to queue {loadedTrack.Info.Title}");
+            }
+            else
+            {
+                await ReplyAsync($"Not found anything with {query}");
+            }
         }
 
         [Command("join", RunMode = RunMode.Async)]
@@ -112,7 +118,7 @@ namespace Nano.Net.Modules
         public async Task AnnounceNowplayAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.TrackInfo.Title);
+            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.Info.Title);
         }
     }
 }

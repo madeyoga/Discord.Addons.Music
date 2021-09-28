@@ -96,10 +96,16 @@ public class TrackScheduler
 }
 ```
 
-### Example Music Bot
+**Note:**
+- AudioTrack is actually a PCM AudioSource
+- Opus AudioSource is not yet supported
+
+Contributions are very very welcome :]
+
+## Example Music Bot
 - Example for guild state management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
 
 ## Contributing
 Looking for a constructive feedback, feedback about best practices would really help me out.
 
-Pull requests are very welcome.
+Pull requests are very welcome,, Thanks!

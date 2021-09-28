@@ -1,6 +1,5 @@
-﻿using Discord.Addons.Music.Core;
-using Discord.Addons.Music.Objects;
-using Discord.Addons.Music.Provider;
+﻿using Discord.Addons.Music.Objects;
+using Discord.Addons.Music.Source;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,7 +28,7 @@ namespace Discord.Addons.Music.Common
                 {
                     foreach (JObject ytdlVideoJson in ytdlResponseJson["entries"].Value<JArray>())
                     {
-                        SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlVideoJson);
+                        AudioInfo songInfo = AudioInfo.ParseYtdlResponse(ytdlVideoJson);
                         songs.Add(new AudioTrack()
                         {
                             Url = songInfo.Url,
@@ -40,7 +39,7 @@ namespace Discord.Addons.Music.Common
                 else
                 {
                     JObject ytdlVideoJson = ytdlResponseJson["entries"].Value<JArray>()[0].Value<JObject>();
-                    SongInfo firstEntrySong = SongInfo.ParseYtdlResponse(ytdlVideoJson);
+                    AudioInfo firstEntrySong = AudioInfo.ParseYtdlResponse(ytdlVideoJson);
                     songs.Add(new AudioTrack()
                     {
                         Url = firstEntrySong.Url,
@@ -50,7 +49,7 @@ namespace Discord.Addons.Music.Common
             }
             else
             {
-                SongInfo songInfo = SongInfo.ParseYtdlResponse(ytdlResponseJson);
+                AudioInfo songInfo = AudioInfo.ParseYtdlResponse(ytdlResponseJson);
                 songs.Add(new AudioTrack()
                 {
                     Url = songInfo.Url,

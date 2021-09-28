@@ -1,4 +1,4 @@
-﻿using Discord.Addons.Music.Audio;
+﻿using Discord.Addons.Music.Player;
 using Nano.Net.Services.Music;
 
 namespace ExampleMusicBot.Services.Music

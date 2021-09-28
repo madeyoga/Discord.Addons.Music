@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Discord.Audio;
-using Nano.Net.Services;
-
-using Discord;
+﻿using Discord.Addons.Music.Source;
 using Discord.Commands;
 using Discord.WebSocket;
-using Discord.Addons.Music.Core;
 using ExampleMusicBot.Services.Music;
+using Nano.Net.Services;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Nano.Net.Modules
 {
@@ -55,6 +51,13 @@ namespace Nano.Net.Modules
                 await ReplyAsync("You r not in a voice channel");
                 return;
             }
+
+            SocketVoiceChannel selfVoiceChannel = (Context.Guild.CurrentUser as SocketGuildUser)?.VoiceChannel;
+            if (selfVoiceChannel is null)
+            {
+                await audioService.JoinChannel(voiceChannel, Context.Guild);
+            }
+
             AudioTrack loadedTrack = await audioService.loadAndPlay(query, Context.Guild);
             if (loadedTrack != null)
             {

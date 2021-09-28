@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Discord.Addons.Music.Common;
-using Discord.Addons.Music.Core;
+using Discord.Addons.Music.Source;
 using Discord.Commands;
 using ExampleMusicBot.Services.Music;
 using System;
@@ -67,7 +67,7 @@ namespace Nano.Net.Services
             foreach(AudioTrack track in tracks)
             {
                 Console.WriteLine("Enqueue " + track.Info.Title);
-                await voiceState.Scheduler.EnqueueAsync(track);
+                voiceState.Scheduler.EnqueueAsync(track);
 
                 return track;
             }

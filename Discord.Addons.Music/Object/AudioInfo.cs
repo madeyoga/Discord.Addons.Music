@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Discord.Addons.Music.Objects
 {
-    public class SongInfo : IAudioInfo
+    public class AudioInfo : IAudioInfo
     {
         public string Id { get; set; }
         public string Url { get; set; }
@@ -12,7 +12,7 @@ namespace Discord.Addons.Music.Objects
         public string ThumbnailUrl { get; set; }
         public string Duration { get; set; }
 
-        public SongInfo(string id, string url, string title, string author, string thumbnailUrl, string duration)
+        public AudioInfo(string id, string url, string title, string author, string thumbnailUrl, string duration)
         {
             Id = id;
             Url = url;
@@ -22,7 +22,7 @@ namespace Discord.Addons.Music.Objects
             Duration = duration;
         }
 
-        public static SongInfo ParseYtdlResponse(JObject ytdlResponseObject)
+        public static AudioInfo ParseYtdlResponse(JObject ytdlResponseObject)
         {
             string id = ytdlResponseObject["id"].Value<string>();
             string url = ytdlResponseObject["webpage_url"].Value<string>();
@@ -31,7 +31,7 @@ namespace Discord.Addons.Music.Objects
             string thumbnailUrl = ytdlResponseObject["thumbnails"][0]["url"].Value<string>();
             string duration = ytdlResponseObject["duration"].Value<string>();
 
-            return new SongInfo(id, url, title, author, thumbnailUrl, duration);
+            return new AudioInfo(id, url, title, author, thumbnailUrl, duration);
         }
     }
 }

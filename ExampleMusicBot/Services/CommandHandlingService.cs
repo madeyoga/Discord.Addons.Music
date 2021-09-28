@@ -68,5 +68,4 @@ namespace Nano.Net.Services
             await context.Channel.SendMessageAsync($"error: {result}");
         }
     }
-
 }

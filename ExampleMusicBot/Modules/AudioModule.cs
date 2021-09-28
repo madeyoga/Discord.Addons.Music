@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Discord.Audio;
-using Nano.Net.Services;
-
-using Discord;
+﻿using Discord.Addons.Music.Source;
 using Discord.Commands;
 using Discord.WebSocket;
-using Discord.Addons.Music.Core;
 using ExampleMusicBot.Services.Music;
+using Nano.Net.Services;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Nano.Net.Modules
 {
@@ -56,8 +52,21 @@ namespace Nano.Net.Modules
                 return;
             }
 
-            Console.WriteLine(query);
-            await audioService.loadAndPlay(query, Context.Guild);
+            SocketVoiceChannel selfVoiceChannel = (Context.Guild.CurrentUser as SocketGuildUser)?.VoiceChannel;
+            if (selfVoiceChannel is null)
+            {
+                await audioService.JoinChannel(voiceChannel, Context.Guild);
+            }
+
+            AudioTrack loadedTrack = await audioService.loadAndPlay(query, Context.Guild);
+            if (loadedTrack != null)
+            {
+                await ReplyAsync($":musical_note: Added to queue {loadedTrack.Info.Title}");
+            }
+            else
+            {
+                await ReplyAsync($"Not found anything with {query}");
+            }
         }
 
         [Command("join", RunMode = RunMode.Async)]
@@ -112,7 +121,7 @@ namespace Nano.Net.Modules
         public async Task AnnounceNowplayAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.TrackInfo.Title);
+            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.Info.Title);
         }
     }
 }

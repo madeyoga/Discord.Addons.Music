@@ -4,7 +4,7 @@
 [![contributionswelcome](https://img.shields.io/badge/contributions-welcome-brightgreen/?style=for-the-badge)]((https://github.com/madeyoga/Discord.Addons.Music/issues))
 [![discord_invite](https://img.shields.io/discord/458296099049046018?style=for-the-badge)](https://discord.gg/Y8sB4ay)
 
-Audio player library for Discord.Net
+Audio player library for Discord.Net using FFmpeg and Youtube-dl
 
 **This project is still in development and not production ready**
 
@@ -18,52 +18,96 @@ Audio player library for Discord.Net
 ### NuGet
 - [Discord.Addons.Music](https://www.nuget.org/packages/Discord.Addons.Music/)
 
-## Basic Usage
-This is a basic example for `AudioPlayer` and `TrackLoader` to play a single `AudioTrack`.
+## Getting started
+This is a basic example on how to use `AudioPlayer`.
 
-### Initialize AudioPlayer
 ```C#
-using Discord.Addons.Music.Core;
+// Initialize AudioPlayer
+AudioPlayer audioPlayer = new AudioPlayer();
 
-Player = new AudioPlayer();
+// Set player's audio client
+// This is required for AudioPlayer to create an audio stream to Discord
+SocketVoiceChannel voiceChannel = (Context.User as SocketGuildUser)?.VoiceChannel;
+var audioClient = await voiceChannel.ConnectAsync();
+audioPlayer.SetAudioClient(audioClient);
 ```
 
-### Set AudioPlayer's IAudioClient
+### Playing an audio
+To play an audio, we need to load an AudioTrack instance. To do this, we can use `TrackLoader` class:
+
 ```C#
-Player.SetAudioClient(audioClient)
+string query = "Tuturu Ringtone";
+bool wellFormedUri = Uri.IsWellFormedUriString(query, UriKind.Absolute);
+List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellFormedUri);
+
+// Pick the first entry and use AudioPlayer.StartTrackAsync to play it
+AudioTrack firstTrack = tracks.ElementAt(0);
+player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
 ```
 
-### Load and Play AudioTrack
+### Handling Audio Event
+AudioPlayer implements IAudioEvent and currently there are 3 audio events that can be subscribed: 
+- OnTrackStartAsync
+- OnTrackEndAsync
+- OnTrackErrorAsync
+
+For example, a track scheduler:
 ```C#
-public async Task loadAndPlay(string query)
+public class TrackScheduler
 {
-    List<AudioTrack> tracks;
+    public Queue<AudioTrack> SongQueue { get; set; }
+    private AudioPlayer player;
 
-    // Check if query is an Url or Keywords
-    if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
+    public TrackScheduler(AudioPlayer player)
     {
-        tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: true);
+        SongQueue = new Queue<AudioTrack>();
+        this.player = player;
+        this.player.OnTrackStartAsync += OnTrackStartAsync;
+        this.player.OnTrackEndAsync += OnTrackEndAsync;
     }
-    else
+
+    public void EnqueueAsync(AudioTrack track)
     {
-        tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: false);
+        if (player.StartTrackAsync(track, interrupt: false) == false)
+        {
+            SongQueue.Enqueue(track);
+        }
     }
-    
-    if (tracks.Count == 0)
+
+    public void NextTrack()
     {
-        Console.WriteLine("Empty result");
-        return;
+        player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
     }
-    
-    // Play first entry
-    Player.PlayTrack(tracks[0]);
+
+    private Task OnTrackStartAsync(IAudioClient audioClient, IAudioSource track)
+    {
+        Console.WriteLine("Track start! " + track.Info.Title);
+        return Task.CompletedTask;
+    }
+
+    private Task OnTrackEndAsync(IAudioClient audioClient, IAudioSource track)
+    {
+        Console.WriteLine("Track end! " + track.Info.Title);
+
+        if (SongQueue.Count > 0)
+        {
+            NextTrack();
+        }
+        return Task.CompletedTask;
+    }
 }
 ```
 
-### More Examples
-- Examples for guild management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
+**Note:**
+- AudioTrack is actually a PCM AudioSource
+- Opus AudioSource is not yet supported
+
+Contributions are very very welcome :]
+
+## Example Music Bot
+- Example for guild state management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Looking for a constructive feedback, feedback about best practices would really help me out.
 
-Please make sure to update tests as appropriate.
+Pull requests are very welcome,, Thanks!

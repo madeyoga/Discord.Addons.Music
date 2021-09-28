@@ -1,15 +1,12 @@
-﻿using System;
+﻿using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using Nano.Net.Services;
+using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-
-using Microsoft.Extensions.DependencyInjection;
-
-using Nano.Net.Services;
 
 namespace Nano.Net
 {
@@ -22,11 +19,6 @@ namespace Nano.Net
         static void Main(string[] args)
         {
             new Program().MainAsync().GetAwaiter().GetResult();
-        }
-
-        public Program()
-        {
-
         }
 
         public async Task MainAsync()

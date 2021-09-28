@@ -1,33 +1,25 @@
 ﻿using Discord;
-using Discord.Audio;
-using Discord.Commands;
-using Discord.WebSocket;
-using Discord.Addons.Music.Core;
 using Discord.Addons.Music.Common;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Nano.Net.Services.Music;
+using Discord.Addons.Music.Source;
+using Discord.Commands;
 using ExampleMusicBot.Services.Music;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Nano.Net.Services
 {
     public class AudioService
     {
-        public GuildMusicManager MusicManager { get; set; }
+        public GuildVoiceStateManager MusicManager { get; set; }
 
         public AudioService()
         {
-            MusicManager = new GuildMusicManager();
+            MusicManager = new GuildVoiceStateManager();
         }
 
         public async Task JoinChannel(IVoiceChannel channel, IGuild guild)
         {
-
             var audioClient = await channel.ConnectAsync();
 
             GuildVoiceState voiceState = MusicManager.GetGuildVoiceState(guild);
@@ -40,6 +32,7 @@ namespace Nano.Net.Services
             {
                 try
                 {
+                    voiceState.Player.Stop();
                     await voiceState.Player.AudioClient.StopAsync();
                     MusicManager.VoiceStates.TryRemove(Context.Guild.Id, out voiceState);
                 }
@@ -54,25 +47,17 @@ namespace Nano.Net.Services
             }
         }
 
-        public async Task loadAndPlay(string query, IGuild guild)
+        public async Task<AudioTrack> loadAndPlay(string query, IGuild guild)
         {
             List<AudioTrack> tracks;
 
             // If query is Url
-            if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
-            {
-                Console.WriteLine(query + " is url");
-                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: true);
-            }
-            else
-            {
-                Console.WriteLine(query + " is not url");
-                tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: false);
-            }
+            bool wellFormedUri = Uri.IsWellFormedUriString(query, UriKind.Absolute);
+            tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellFormedUri);
             
             if (tracks.Count == 0)
             {
-                return;
+                return null;
             }
 
             Console.WriteLine("Loaded " + tracks.Count + " entri(es)");
@@ -81,10 +66,13 @@ namespace Nano.Net.Services
 
             foreach(AudioTrack track in tracks)
             {
-                //await voiceState.Scheduler.EnqueueAsync(track);
-                voiceState.Scheduler.Enqueue(track);
-                Console.WriteLine("Enqueued " + track.TrackInfo.Title);
+                Console.WriteLine("Enqueue " + track.Info.Title);
+                voiceState.Scheduler.EnqueueAsync(track);
+
+                return track;
             }
+
+            return null;
         }
     }
 }

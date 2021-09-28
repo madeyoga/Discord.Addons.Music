@@ -1,13 +1,9 @@
 ﻿using Discord;
-using Discord.Audio;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ExampleMusicBot.Services.Music
 {
-    public class GuildMusicManager
+    public class GuildVoiceStateManager
     {
         public readonly ConcurrentDictionary<ulong, GuildVoiceState> VoiceStates = new ConcurrentDictionary<ulong, GuildVoiceState>();
 

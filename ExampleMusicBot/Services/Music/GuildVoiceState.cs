@@ -1,9 +1,5 @@
-﻿using Discord.Addons.Music.Core;
-using Discord.Audio;
+﻿using Discord.Addons.Music.Player;
 using Nano.Net.Services.Music;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ExampleMusicBot.Services.Music
 {
@@ -16,8 +12,6 @@ namespace ExampleMusicBot.Services.Music
         {
             Player = new AudioPlayer();
             Scheduler = new TrackScheduler(Player);
-
-            Player.RegisterEventAdapter(Scheduler);
         }
     }
 }

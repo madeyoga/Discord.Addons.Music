@@ -142,10 +142,7 @@ namespace Discord.Addons.Music.Player
             {
                 cts.Cancel(false);
             }
-            catch(ObjectDisposedException)
-            {
-
-            }
+            catch(ObjectDisposedException) { }
             cts.Dispose();
         }
 

@@ -42,7 +42,7 @@ List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellF
 
 // Pick the first entry and use AudioPlayer.StartTrackAsync to play it
 AudioTrack firstTrack = tracks.ElementAt(0);
-player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
+player.StartTrackAsync(firstTrack, interrupt: true);
 ```
 
 ### Handling Audio Event

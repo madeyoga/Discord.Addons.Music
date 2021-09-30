@@ -97,23 +97,15 @@ namespace Nano.Net.Modules
         public async Task PauseAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            voiceState.Player.SetPaused(true);
+            voiceState.Player.Paused = !voiceState.Player.Paused;
             await ReplyAsync("Pause!");
-        }
-
-        [Command("resume", RunMode = RunMode.Async)]
-        public async Task ResumeAsync()
-        {
-            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            voiceState.Player.SetPaused(false);
-            await ReplyAsync("Resume!");
         }
 
         [Command("volume", RunMode = RunMode.Async)]
         public async Task VolumeAsync([Remainder] string volumeNumber)
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            voiceState.Player.SetVolume(double.Parse(volumeNumber) / 100);
+            voiceState.Player.Volume = double.Parse(volumeNumber) / 100;
             await ReplyAsync("Volume changed to " + volumeNumber + "!");
         }
 
@@ -121,7 +113,24 @@ namespace Nano.Net.Modules
         public async Task AnnounceNowplayAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            await ReplyAsync("Nowplaying " + voiceState.Player.PlayingTrack.Info.Title);
+            IAudioSource np = voiceState.Player.PlayingTrack;
+
+            if (np == null)
+            {
+                await ReplyAsync("Not playing anything.");
+            }
+            else
+            {
+                await ReplyAsync(":musical_note: Now playing: " + voiceState.Player.PlayingTrack.Info.Title);
+            }
+        }
+
+        [Command("skip", RunMode = RunMode.Async)]
+        public async Task SkipAsync()
+        {
+            GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
+            voiceState.Scheduler.NextTrack();
+            await AnnounceNowplayAsync();
         }
     }
 }

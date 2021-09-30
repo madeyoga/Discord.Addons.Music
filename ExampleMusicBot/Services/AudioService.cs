@@ -5,6 +5,7 @@ using Discord.Commands;
 using ExampleMusicBot.Services.Music;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Nano.Net.Services
@@ -32,7 +33,6 @@ namespace Nano.Net.Services
             {
                 try
                 {
-                    voiceState.Player.Stop();
                     await voiceState.Player.AudioClient.StopAsync();
                     MusicManager.VoiceStates.TryRemove(Context.Guild.Id, out voiceState);
                 }
@@ -67,8 +67,7 @@ namespace Nano.Net.Services
             foreach(AudioTrack track in tracks)
             {
                 Console.WriteLine("Enqueue " + track.Info.Title);
-                voiceState.Scheduler.EnqueueAsync(track);
-
+                voiceState.Scheduler.Enqueue(track);
                 return track;
             }
 

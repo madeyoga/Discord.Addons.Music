@@ -31,8 +31,10 @@ namespace Nano.Net.Services.Music
         public void NextTrack()
         {
             AudioTrack nextTrack;
-            SongQueue.TryDequeue(out nextTrack);
-            player.StartTrack(nextTrack, true);
+            if (SongQueue.TryDequeue(out nextTrack))
+                player.StartTrack(nextTrack, true);
+            else
+                player.Stop();
         }
 
         private Task OnTrackStartAsync(IAudioClient audioClient, IAudioSource track)

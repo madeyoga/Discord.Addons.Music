@@ -66,9 +66,9 @@ public class TrackScheduler
         this.player.OnTrackEndAsync += OnTrackEndAsync;
     }
 
-    public void EnqueueAsync(AudioTrack track)
+    public void Enqueue(AudioTrack track)
     {
-        if (player.StartTrackAsync(track, interrupt: false) == false)
+        if (player.StartTrack(track, false) == false)
         {
             SongQueue.Enqueue(track);
         }
@@ -76,7 +76,12 @@ public class TrackScheduler
 
     public void NextTrack()
     {
-        player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
+        AudioTrack nextTrack;
+        if (SongQueue.TryDequeue(out nextTrack))
+            // Start playing audio track on Thread pool
+            player.StartTrack(nextTrack, true);
+        else
+            player.Stop();
     }
 
     private Task OnTrackStartAsync(IAudioClient audioClient, IAudioSource track)
@@ -89,10 +94,8 @@ public class TrackScheduler
     {
         Console.WriteLine("Track end! " + track.Info.Title);
 
-        if (SongQueue.Count > 0)
-        {
-            NextTrack();
-        }
+        NextTrack();
+
         return Task.CompletedTask;
     }
 }

@@ -161,13 +161,12 @@ namespace Discord.Addons.Music.Player
         }
 
         /// <summary>
-        /// Start playing an audio source on the thread pool. Deprecated in version 0.1.1, please use StartTrack instead.
+        /// Start playing an audio source.
         /// </summary>
         /// <param name="track"></param>
         /// <param name="interrupt"></param>
         /// <returns></returns>
-        [Obsolete("StartTrackAsync is deprecated since it is actually not an async method, please use StartTrack instead.")]
-        public bool StartTrackAsync(IAudioSource track, bool interrupt = true)
+        public async Task<bool> StartTrackAsync(IAudioSource track, bool interrupt = true)
         {
             if (track == null)
                 return false;
@@ -175,13 +174,10 @@ namespace Discord.Addons.Music.Player
             if (!interrupt && PlayingTrack != null)
                 return false;
 
-            Task.Run(async () =>
-            {
-                cts = new CancellationTokenSource();
-                await OnTrackStartAsync(AudioClient, track);
-                await AudioLoopAsync(track, cts.Token);
-                await OnTrackEndAsync(AudioClient, track);
-            });
+            cts = new CancellationTokenSource();
+            await OnTrackStartAsync(AudioClient, track);
+            await AudioLoopAsync(track, cts.Token);
+            await OnTrackEndAsync(AudioClient, track);
 
             return true;
         }

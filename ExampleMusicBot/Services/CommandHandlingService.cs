@@ -5,6 +5,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using Nano.Net.Modules;
 
 namespace Nano.Net.Services
 {
@@ -29,7 +30,8 @@ namespace Nano.Net.Services
 
         public async Task InitializeAsync()
         {
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+            //await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+            await _commands.AddModuleAsync<AudioModule>(_services);
         }
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)

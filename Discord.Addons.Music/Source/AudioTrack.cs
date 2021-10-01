@@ -47,7 +47,7 @@ namespace Discord.Addons.Music.Source
             return new AudioTrack()
             {
                 Url = Url,
-                SourceStream = streamClone,
+                SourceStream = null,
                 FFmpegProcess = null,
                 Info = Info
             };

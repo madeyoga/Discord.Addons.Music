@@ -20,9 +20,9 @@ namespace Nano.Net.Services.Music
             this.player.OnTrackEndAsync += OnTrackEndAsync;
         }
 
-        public void EnqueueAsync(AudioTrack track)
+        public void Enqueue(AudioTrack track)
         {
-            if (player.StartTrackAsync(track, false) == false)
+            if (player.StartTrack(track, false) == false)
             {
                 SongQueue.Enqueue(track);
             }
@@ -30,23 +30,25 @@ namespace Nano.Net.Services.Music
 
         public void NextTrack()
         {
-            player.StartTrackAsync(SongQueue.Dequeue(), true);
+            AudioTrack nextTrack;
+            if (SongQueue.TryDequeue(out nextTrack))
+                player.StartTrack(nextTrack, true);
+            else
+                player.Stop();
         }
 
-        public Task OnTrackStartAsync(IAudioClient audioClient, IAudioSource track)
+        private Task OnTrackStartAsync(IAudioClient audioClient, IAudioSource track)
         {
             Console.WriteLine("Track start! " + track.Info.Title);
             return Task.CompletedTask;
         }
 
-        public Task OnTrackEndAsync(IAudioClient audioClient, IAudioSource track)
+        private Task OnTrackEndAsync(IAudioClient audioClient, IAudioSource track)
         {
             Console.WriteLine("Track end! " + track.Info.Title);
+            
+            NextTrack();
 
-            if (SongQueue.Count > 0)
-            {
-                NextTrack();
-            }
             return Task.CompletedTask;
         }
     }

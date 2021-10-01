@@ -11,25 +11,25 @@ namespace Discord.Addons.Music.Player
     public class AudioPlayer : IAudioEvent
     {
         // Audio Loop Flags
-        private volatile bool Paused = false;
+        private volatile bool paused = false;
 
         // Events
         public event IAudioEvent.TrackStartAsync OnTrackStartAsync;
         public event IAudioEvent.TrackEndAsync OnTrackEndAsync;
         public event IAudioEvent.TrackErrorAsync OnTrackErrorAsync;
 
-        public IAudioSource PlayingTrack { get; set; }
+        public IAudioSource PlayingTrack { get; private set; }
         public Stream DiscordStream { get; set; }
         public IAudioClient AudioClient { get; private set; }
-        private double Volume { get; set; }
         private CancellationTokenSource cts;
+        private double volume = 1;
+        private Task loopTask;
 
         public AudioPlayer()
         {
             OnTrackStartAsync += TrackStartEventAsync;
             OnTrackEndAsync += TrackEndEventAsync;
             OnTrackErrorAsync += TrackErrorEventAsync;
-            Volume = 1;
         }
 
         public AudioPlayer(IAudioClient audioClient)
@@ -39,9 +39,12 @@ namespace Discord.Addons.Music.Player
             OnTrackStartAsync += TrackStartEventAsync;
             OnTrackEndAsync += TrackEndEventAsync;
             OnTrackErrorAsync += TrackErrorEventAsync;
-            Volume = 1;
         }
 
+        /// <summary>
+        /// Audio client is required for Player to create an audio stream.
+        /// </summary>
+        /// <param name="audioClient"></param>
         public void SetAudioClient(IAudioClient audioClient)
         {
             AudioClient = audioClient;
@@ -51,27 +54,23 @@ namespace Discord.Addons.Music.Player
 
         private Task TrackStartEventAsync(IAudioClient audioClient, IAudioSource track)
         {
-            Paused = false;
-            ResetStreams();
-            PlayingTrack = track;
+            paused = false;
             PlayingTrack.LoadProcess();
             return Task.CompletedTask;
         }
 
         private Task TrackEndEventAsync(IAudioClient audioClient, IAudioSource track)
         {
-            Paused = false;
+            paused = false;
             ResetStreams();
-            cts.Dispose();
             PlayingTrack = null;
             return Task.CompletedTask;
         }
 
         private Task TrackErrorEventAsync(IAudioClient audioClient, IAudioSource track, TrackErrorException exception)
         {
-            Paused = false;
+            paused = false;
             ResetStreams();
-            cts.Dispose();
             PlayingTrack = null;
             return Task.CompletedTask;
         }
@@ -83,7 +82,7 @@ namespace Discord.Addons.Music.Player
             {
                 if (ct.IsCancellationRequested)
                 {
-                    break;
+                    return;
                 }
 
                 if (DiscordStream == null)
@@ -92,7 +91,7 @@ namespace Discord.Addons.Music.Player
                     return;
                 }
 
-                if (!Paused)
+                if (!paused)
                 {
                     // Read audio byte sample
                     read = await PlayingTrack.Provide20msAudio(ct);
@@ -110,23 +109,48 @@ namespace Discord.Addons.Music.Player
                     // Finished playing
                     else
                     {
-                        break;
+                        return;
                     }
                 }
                 else
                 {
-                    await Task.Delay(2000, ct);
+                    await Task.Delay(2000);
                 }
             }
         }
 
-        public bool StartTrackAsync(IAudioSource track, bool interrupt = true)
+        /// <summary>
+        /// Start playing an audio source on the thread pool.
+        /// </summary>
+        /// <param name="track">Audio source to be played</param>
+        /// <param name="interrupt">interrupt true will force audio player to skip and play the provided audio source.</param>
+        /// <returns>true if the provided audio source was played, false if don't interrupt (interrupt is false) and audio player is still playing audio</returns>
+        public bool StartTrack(IAudioSource track, bool interrupt = true)
         {
-            if (track == null) return false;
-            if (!interrupt && PlayingTrack != null) return false;
+            if (track == null)
+                return false;
 
-            _ = Task.Run(async () =>
+            if (PlayingTrack != null)
             {
+                if (interrupt)
+                {
+                    Stop();
+                    loopTask.Wait();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            PlayingTrack = track;
+
+            loopTask = Task.Run(async () =>
+            {
+                if (cts != null)
+                {
+                    cts.Dispose();
+                }
                 cts = new CancellationTokenSource();
                 await OnTrackStartAsync(AudioClient, track);
                 await AudioLoopAsync(track, cts.Token);
@@ -136,32 +160,66 @@ namespace Discord.Addons.Music.Player
             return true;
         }
 
+        /// <summary>
+        /// Start playing an audio source.
+        /// </summary>
+        /// <param name="track"></param>
+        /// <param name="interrupt"></param>
+        /// <returns></returns>
+        public async Task<bool> StartTrackAsync(IAudioSource track, bool interrupt = true)
+        {
+            if (track == null)
+                return false;
+
+            if (!interrupt && PlayingTrack != null)
+                return false;
+
+            cts = new CancellationTokenSource();
+            await OnTrackStartAsync(AudioClient, track);
+            await AudioLoopAsync(track, cts.Token);
+            await OnTrackEndAsync(AudioClient, track);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Stop current playing audio source
+        /// </summary>
         public void Stop()
         {
             try
             {
                 cts.Cancel(false);
             }
-            catch(ObjectDisposedException) { }
+            catch(ObjectDisposedException) 
+            { }
             cts.Dispose();
         }
 
-        public void SetVolume(double volume)
+        public double Volume
         {
-            if (volume > 100) volume = 100;
-            else if (volume < 0) volume = 0;
-            
-            if (volume > 1)
+            get
             {
-                volume /= 100;
+                return volume;
             }
+            set
+            {
+                if (value > 100) value = 100;
+                else if (value < 0) value = 0;
 
-            Volume = volume;
+                if (value > 1)
+                {
+                    value /= 100;
+                }
+
+                volume = value;
+            }
         }
 
-        public void SetPaused(bool paused)
+        public bool Paused
         {
-            Paused = paused;
+            get => paused;
+            set => paused = value;
         }
 
         protected static unsafe byte[] AdjustVolume(byte[] audioSamples, double volume)

@@ -102,7 +102,7 @@ public class TrackScheduler
 ```
 
 **Note:**
-- AudioTrack is actually a PCM AudioSource
+- AudioTrack is PCM AudioSource
 - Opus AudioSource is not yet supported
 
 Contributions are very very welcome :]

@@ -45,7 +45,7 @@ AudioTrack firstTrack = tracks.ElementAt(0);
 player.StartTrack(firstTrack, interrupt: true);
 ```
 
-### Handling Audio Event
+### Subscribe to AudioPlayer Events
 AudioPlayer implements IAudioEvent and currently there are 3 audio events that can be subscribed: 
 - OnTrackStartAsync
 - OnTrackEndAsync

@@ -40,7 +40,7 @@ string query = "Tuturu Ringtone";
 bool wellFormedUri = Uri.IsWellFormedUriString(query, UriKind.Absolute);
 List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellFormedUri);
 
-// Pick the first entry and use AudioPlayer.StartTrackAsync to play it
+// Pick the first entry and use AudioPlayer.StartTrack to play it on Thread Pool
 AudioTrack firstTrack = tracks.ElementAt(0);
 player.StartTrack(firstTrack, interrupt: true);
 ```

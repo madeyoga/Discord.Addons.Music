@@ -9,7 +9,7 @@ Audio player library for Discord.Net using FFmpeg and Youtube-dl
 **This project is still in development and not production ready**
 
 ## Requirements
-- [Libopus & Opus.dll](https://opus-codec.org/downloads/)
+- [Libopus & Opus.dll](https://dsharpplus.github.io/articles/audio/voicenext/prerequisites.html)
 - [Youtube-dl](https://youtube-dl.org/)
 - [FFmpeg](https://ffmpeg.org/download.html)
 

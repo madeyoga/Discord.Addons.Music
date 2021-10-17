@@ -58,7 +58,7 @@ namespace Nano.Net.Modules
                 await audioService.JoinChannel(voiceChannel, Context.Guild);
             }
 
-            AudioTrack loadedTrack = await audioService.loadAndPlay(query, Context.Guild);
+            AudioTrack loadedTrack = await audioService.LoadAndPlay(query, Context.Guild);
             if (loadedTrack != null)
             {
                 await ReplyAsync($":musical_note: Added to queue {loadedTrack.Info.Title}");
@@ -97,8 +97,16 @@ namespace Nano.Net.Modules
         public async Task PauseAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            voiceState.Player.Paused = !voiceState.Player.Paused;
-            await ReplyAsync("Pause!");
+            if (voiceState.Player.Paused)
+            {
+                voiceState.Player.Paused = false;
+                await ReplyAsync("Resume!");
+            }
+            else
+            {
+                voiceState.Player.Paused = true;
+                await ReplyAsync("Pause!");
+            }
         }
 
         [Command("volume", RunMode = RunMode.Async)]
@@ -129,7 +137,7 @@ namespace Nano.Net.Modules
         public async Task SkipAsync()
         {
             GuildVoiceState voiceState = audioService.MusicManager.GetGuildVoiceState(Context.Guild);
-            voiceState.Scheduler.NextTrack();
+            await voiceState.Scheduler.NextTrack();
             await AnnounceNowplayAsync();
         }
     }

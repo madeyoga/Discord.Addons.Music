@@ -17,7 +17,7 @@ namespace Discord.Addons.Music.Common
                 query = HttpUtility.UrlEncode(query);
             }
 
-            JObject ytdlResponseJson = await YoutubeDLInfoProvider.ExtractInfo(query, fromUrl);
+            JObject ytdlResponseJson = await YoutubeDLInfoProvider.ExtractInfo(query, fromUrl).ConfigureAwait(false);
 
             List<AudioTrack> songs = new List<AudioTrack>();
 

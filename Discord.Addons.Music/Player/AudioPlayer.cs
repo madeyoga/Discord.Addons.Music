@@ -23,7 +23,6 @@ namespace Discord.Addons.Music.Player
         public IAudioClient AudioClient { get; private set; }
         private CancellationTokenSource cts;
         private double volume = 1;
-        private Task loopTask;
 
         public AudioPlayer()
         {
@@ -48,7 +47,7 @@ namespace Discord.Addons.Music.Player
         public void SetAudioClient(IAudioClient audioClient)
         {
             AudioClient = audioClient;
-            if (DiscordStream != null) DiscordStream.Dispose();
+            DiscordStream?.Dispose();
             DiscordStream = audioClient.CreatePCMStream(AudioApplication.Music);
         }
 
@@ -64,6 +63,7 @@ namespace Discord.Addons.Music.Player
             paused = false;
             ResetStreams();
             PlayingTrack = null;
+            cts?.Dispose();
             return Task.CompletedTask;
         }
 
@@ -94,16 +94,16 @@ namespace Discord.Addons.Music.Player
                 if (!paused)
                 {
                     // Read audio byte sample
-                    read = await PlayingTrack.Provide20msAudio(ct);
+                    read = await PlayingTrack.Provide20msAudio(ct).ConfigureAwait(false);
                     if (read > 0)
                     {
                         if (Volume != 1)
                         {
-                            await DiscordStream.WriteAsync(AdjustVolume(PlayingTrack.GetBufferFrame(), Volume), 0, read, ct);
+                            await DiscordStream.WriteAsync(AdjustVolume(PlayingTrack.GetBufferFrame(), Volume), 0, read, ct).ConfigureAwait(false);
                         }
                         else
                         {
-                            await DiscordStream.WriteAsync(PlayingTrack.GetBufferFrame(), 0, read, ct);
+                            await DiscordStream.WriteAsync(PlayingTrack.GetBufferFrame(), 0, read, ct).ConfigureAwait(false);
                         }
                     }
                     // Finished playing
@@ -114,72 +114,34 @@ namespace Discord.Addons.Music.Player
                 }
                 else
                 {
-                    await Task.Delay(2000);
+                    await Task.Delay(4000);
                 }
             }
         }
 
         /// <summary>
-        /// Start playing an audio source on the thread pool.
+        /// Plays an IAudioSource. This method will interrupt and then play the given audio source.
         /// </summary>
-        /// <param name="track">Audio source to be played</param>
-        /// <param name="interrupt">interrupt true will force audio player to skip and play the provided audio source.</param>
-        /// <returns>true if the provided audio source was played, false if don't interrupt (interrupt is false) and audio player is still playing audio</returns>
-        public bool StartTrack(IAudioSource track, bool interrupt = true)
+        /// <param name="track"></param>
+        /// <returns></returns>
+        public async Task StartTrackAsync(IAudioSource track)
         {
             if (track == null)
-                return false;
+                return;
 
             if (PlayingTrack != null)
             {
-                if (interrupt)
-                {
-                    Stop();
-                    loopTask.Wait();
-                }
-                else
-                {
-                    return false;
-                }
+                Stop();
             }
 
             PlayingTrack = track;
 
-            loopTask = Task.Run(async () =>
-            {
-                if (cts != null)
-                {
-                    cts.Dispose();
-                }
-                cts = new CancellationTokenSource();
-                await OnTrackStartAsync(AudioClient, track);
-                await AudioLoopAsync(track, cts.Token);
-                await OnTrackEndAsync(AudioClient, track);
-            });
-
-            return true;
-        }
-
-        /// <summary>
-        /// Start playing an audio source.
-        /// </summary>
-        /// <param name="track"></param>
-        /// <param name="interrupt"></param>
-        /// <returns></returns>
-        public async Task<bool> StartTrackAsync(IAudioSource track, bool interrupt = true)
-        {
-            if (track == null)
-                return false;
-
-            if (!interrupt && PlayingTrack != null)
-                return false;
-
+            cts?.Dispose();
             cts = new CancellationTokenSource();
-            await OnTrackStartAsync(AudioClient, track);
-            await AudioLoopAsync(track, cts.Token);
-            await OnTrackEndAsync(AudioClient, track);
 
-            return true;
+            await OnTrackStartAsync(AudioClient, PlayingTrack).ConfigureAwait(false);
+            await AudioLoopAsync(PlayingTrack, cts.Token).ConfigureAwait(false);
+            await OnTrackEndAsync(AudioClient, PlayingTrack).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -189,11 +151,11 @@ namespace Discord.Addons.Music.Player
         {
             try
             {
-                cts.Cancel(false);
+                cts?.Cancel(false);
             }
             catch(ObjectDisposedException) 
             { }
-            cts.Dispose();
+            cts?.Dispose();
         }
 
         public double Volume
@@ -245,18 +207,15 @@ namespace Discord.Addons.Music.Player
 
         protected void ResetStreams()
         {
-            if (DiscordStream != null)
-                DiscordStream.Flush();
-            if (PlayingTrack != null)
-                PlayingTrack.Dispose();
+            DiscordStream?.Flush();
+            PlayingTrack?.Dispose();
         }
 
         ~AudioPlayer()
         {
-            if (DiscordStream != null)
-                DiscordStream.Dispose();
-            if (PlayingTrack != null)
-                PlayingTrack.Dispose();
+            DiscordStream?.Dispose();
+            PlayingTrack?.Dispose();
+            cts?.Dispose();
         }
     }
 }

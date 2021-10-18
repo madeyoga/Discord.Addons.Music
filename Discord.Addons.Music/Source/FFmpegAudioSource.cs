@@ -30,7 +30,7 @@ namespace Discord.Addons.Music.Source
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
                 // TODO: set large fields to null
-                SourceStream.Dispose();
+                SourceStream?.Dispose();
                 FFmpegProcess.Dispose();
                 SourceStream = null;
                 FFmpegProcess = null;

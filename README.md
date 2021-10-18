@@ -42,7 +42,13 @@ List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellF
 
 // Pick the first entry and use AudioPlayer.StartTrack to play it on Thread Pool
 AudioTrack firstTrack = tracks.ElementAt(0);
-player.StartTrack(firstTrack, interrupt: true);
+
+// Fire & forget
+player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true).ConfigureAwait(false);
+
+// OR
+// await track to finish playing
+await player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
 ```
 
 ### Subscribe to AudioPlayer Events
@@ -66,20 +72,25 @@ public class TrackScheduler
         this.player.OnTrackEndAsync += OnTrackEndAsync;
     }
 
-    public void Enqueue(AudioTrack track)
+    public Task Enqueue(AudioTrack track)
     {
-        if (player.StartTrack(track, false) == false)
+        if (player.PlayingTrack != null)
         {
             SongQueue.Enqueue(track);
         }
+        else
+        {
+            // fire and forget
+            player.StartTrackAsync(track).ConfigureAwait(false);
+        }
+        return Task.CompletedTask;
     }
 
-    public void NextTrack()
+    public async Task NextTrack()
     {
         AudioTrack nextTrack;
         if (SongQueue.TryDequeue(out nextTrack))
-            // Start playing audio track on Thread pool
-            player.StartTrack(nextTrack, true);
+            await player.StartTrackAsync(nextTrack);
         else
             player.Stop();
     }
@@ -90,13 +101,11 @@ public class TrackScheduler
         return Task.CompletedTask;
     }
 
-    private Task OnTrackEndAsync(IAudioClient audioClient, IAudioSource track)
+    private async Task OnTrackEndAsync(IAudioClient audioClient, IAudioSource track)
     {
         Console.WriteLine("Track end! " + track.Info.Title);
 
-        NextTrack();
-
-        return Task.CompletedTask;
+        await NextTrack();
     }
 }
 ```
@@ -108,9 +117,8 @@ public class TrackScheduler
 Contributions are very very welcome :]
 
 ## Example Music Bot
-- Example for guild state management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
+- Example for guild music state management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
 
 ## Contributing
-Looking for a constructive feedback, feedback about best practices would really help me out.
+Looking for a constructive feedback, feedback about best practices would really help me out. If you find a flaw in my logic, please open an issue or a PR and we'll sort things out.
 
-Pull requests are very welcome,, Thanks!

@@ -26,7 +26,7 @@ namespace Discord.Addons.Music.Source
 
         public override async Task<int> Provide20msAudio(CancellationToken ct)
         {
-            return await SourceStream.ReadAsync(BufferFrame, 0, BufferFrame.Length, ct);
+            return await SourceStream.ReadAsync(BufferFrame, 0, BufferFrame.Length, ct).ConfigureAwait(false);
         }
 
         public override bool IsOpus()

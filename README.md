@@ -6,8 +6,10 @@
 
 Audio player library for Discord.Net using FFmpeg and Youtube-dl
 
+**This project is still in development and not production ready**
+
 ## Requirements
-- [Libopus & Opus.dll](https://opus-codec.org/downloads/)
+- [Libopus & Opus.dll](https://dsharpplus.github.io/articles/audio/voicenext/prerequisites.html)
 - [Youtube-dl](https://youtube-dl.org/)
 - [FFmpeg](https://ffmpeg.org/download.html)
 
@@ -38,7 +40,7 @@ string query = "Tuturu Ringtone";
 bool wellFormedUri = Uri.IsWellFormedUriString(query, UriKind.Absolute);
 List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellFormedUri);
 
-// Pick the first entry and use AudioPlayer.StartTrackAsync to play it
+// Pick the first entry and use AudioPlayer.StartTrack to play it on Thread Pool
 AudioTrack firstTrack = tracks.ElementAt(0);
 
 // Fire & forget
@@ -49,7 +51,7 @@ player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true).ConfigureAwait(fals
 await player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
 ```
 
-### Handling Audio Event
+### Subscribe to AudioPlayer Events
 AudioPlayer implements IAudioEvent and currently there are 3 audio events that can be subscribed: 
 - OnTrackStartAsync
 - OnTrackEndAsync
@@ -109,7 +111,7 @@ public class TrackScheduler
 ```
 
 **Note:**
-- AudioTrack is actually a PCM AudioSource
+- AudioTrack is PCM AudioSource
 - Opus AudioSource is not yet supported
 
 Contributions are very very welcome :]

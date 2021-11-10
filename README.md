@@ -117,7 +117,7 @@ public class TrackScheduler
 Contributions are very very welcome :]
 
 ## Example Music Bot
-- Example for guild music state management and queue system, at [ExampleMusicBot project](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music)
+- Example for guild music state management and queue system, at [ExampleMusicBot](https://github.com/madeyoga/Discord.Addons.Music/tree/master/ExampleMusicBot/Services/Music) or at [Demo](https://github.com/madeyoga/Nano.Net)
 
 ## Contributing
 Looking for a constructive feedback, feedback about best practices would really help me out. If you find a flaw in my logic, please open an issue or a PR and we'll sort things out.

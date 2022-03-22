@@ -3,6 +3,7 @@ using Discord.Addons.Music.Source;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -61,10 +62,20 @@ namespace Discord.Addons.Music.Common
 
         public static Process LoadFFmpegProcess(string url)
         {
+            string filename = $"/bin/bash";
+            string command = $"-c \"youtube-dl --format bestaudio -o - {url} | ffmpeg -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1\"";
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                filename = "cmd.exe";
+                command = $"/C youtube-dl.exe --format bestaudio --audio-quality 0 -o - {url} | " +
+                "ffmpeg.exe -loglevel warning -re -vn -i pipe:0 -f s16le -b:a 128k -ar 48000 -ac 2 pipe:1";
+            }
+
             return Process.Start(new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/C youtube-dl.exe --format --audio-quality 0 bestaudio -o - {url} | ffmpeg.exe -loglevel panic -i pipe:0 -c:a libopus -b:a 96K -ac 2 -f s16le -ar 48000 pipe:1",
+                FileName = filename,
+                Arguments = command,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true

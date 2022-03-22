@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,11 +12,19 @@ namespace Discord.Addons.Music.Source
 
         public override void LoadProcess()
         {
-            string command = $"/C youtube-dl.exe --format bestaudio --audio-quality 0 -o - {Url} | " +
+            string filename = $"/bin/bash";
+            string command = $"-c \"youtube-dl --format bestaudio -o - {Url} | ffmpeg -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1\"";
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                filename = "cmd.exe";
+                command = $"/C youtube-dl.exe --format bestaudio --audio-quality 0 -o - {Url} | " +
                 "ffmpeg.exe -loglevel warning -re -vn -i pipe:0 -f s16le -b:a 128k -ar 48000 -ac 2 pipe:1";
+            }
+
             FFmpegProcess = Process.Start(new ProcessStartInfo
             {
-                FileName = "cmd.exe",
+                FileName = filename,
                 Arguments = command,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,

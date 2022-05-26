@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Addons.Music" Version="0.2.0" />
+    <PackageReference Include="Discord.Addons.Music" Version="0.2.1" />
     <PackageReference Include="Discord.Net" Version="2.4.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
     <PackageReference Include="YoutubeSearchApi.Net" Version="2021.8.24" />

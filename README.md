@@ -44,11 +44,11 @@ List<AudioTrack> tracks = await TrackLoader.LoadAudioTrack(query, fromUrl: wellF
 AudioTrack firstTrack = tracks.ElementAt(0);
 
 // Fire & forget
-player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true).ConfigureAwait(false);
+player.StartTrackAsync(firstTrack, interrupt: true).ConfigureAwait(false);
 
 // OR
 // await track to finish playing
-await player.StartTrackAsync(SongQueue.Dequeue(), interrupt: true);
+await player.StartTrackAsync(firstTrack, interrupt: true);
 ```
 
 ### Subscribe to AudioPlayer Events
